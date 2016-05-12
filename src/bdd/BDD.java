@@ -1,6 +1,9 @@
 package bdd;
 
 import java.util.Hashtable;
+import com.bpodgursky.jbool_expressions.*;
+import com.bpodgursky.jbool_expressions.rules.RuleSet;
+
 import utils.*;
 
 /**
@@ -38,6 +41,7 @@ public class BDD {
 		H = new Hashtable<Triple<Integer, Node, Node>, Node>(n);
 	}
 	
+	//TODO Write javadoc for mk
 	public Node mk(Triple<Integer, Node, Node> variables){
 	
 	        int var = variables.getFirst();
@@ -58,6 +62,20 @@ public class BDD {
 	        return exist;
 	}
 	
+	//TODO Javadoc
+	public void build(Expression<String> t){
+		
+	}
 	
+	//TODO Javadoc, find method of substituting boolean expressions
+	private Node buildH(Expression<String> t, int i){
+		if(i > n){
+			if(RuleSet.simplify(t).equals(Literal.getFalse())){
+				return mk(new Triple<Integer, Node, Node>(-1, null, null));
+			}
+			return mk(new Triple<Integer, Node, Node>(-1, null, null));
+		}
+		return mk(i, build(RuleSet.assign(t, /*set xi to 0*/), i+1), build(RuleSet.assign(t, /*set xi to 1*/), i+1))));
+	}
 	
 }

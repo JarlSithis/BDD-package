@@ -2,6 +2,11 @@ package utils;
 
 public class Node {
 
+	/**
+	 * The index of the variable. 
+	 * -1 denotes that the node is the terminal node 0
+	 * -2 denotes that the node is the terminal node 1
+	 */
 	private int var;
 	private Node high;
 	private Node low;
