@@ -1,28 +1,50 @@
 package bdd;
 
+import java.util.Collections;
 import java.util.Hashtable;
-import com.bpodgursky.jbool_expressions.*;
+import java.util.Iterator;
+import java.util.Map.Entry;
+
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.parsers.ExprParser;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 
-import utils.*;
+import utils.FalseTerminalNode;
+import utils.GraphPainter;
+import utils.Node;
+import utils.NonTerminalNode;
+import utils.NotSatisfiableException;
+import utils.TerminalNode;
+import utils.Triple;
+import utils.TrueTerminalNode;
 
 /**
- * @author Offtermatt
+ * @author philip
  */
 public class BDD {
 
 	/**
 	 * A lookup table that maps triples of (var, low, high) to {@Link Node}s n
 	 */
-	private Hashtable<Triple<Integer, Node, Node>, Node> H;
+	private Hashtable<Triple<Integer, Node, Node>, Node> lookupTable;
 
 	/**
 	 * The "real" bdd.
 	 */
 	private Node root;
 
-	// global references to the terminal nodes, to reduce redundance
+	// global references to the terminal nodes, to reduce redundancy
 	private TrueTerminalNode terminalTrue;
+
+	public TrueTerminalNode getTerminalTrue() {
+		return terminalTrue;
+	}
+
+	public FalseTerminalNode getTerminalFalse() {
+		return terminalFalse;
+	}
+
 	private FalseTerminalNode terminalFalse;
 
 	/**
@@ -32,7 +54,7 @@ public class BDD {
 	private int n;
 
 	/**
-	 * initialises the BDD to work over a given set of variables
+	 * Initializes the BDD to work over a given set of variables
 	 * 
 	 * @param variableCount
 	 *            The number of variables that will be used, denoted with the
@@ -42,175 +64,296 @@ public class BDD {
 		n = variableCount;
 
 		// assume that as many nodes as we have variables is a good estimate
-		H = new Hashtable<Triple<Integer, Node, Node>, Node>(n);
+		lookupTable = new Hashtable<Triple<Integer, Node, Node>, Node>(n * n);
+
+		terminalTrue = new TrueTerminalNode(n);
+		terminalFalse = new FalseTerminalNode(n);
 	}
 
-	// TODO Write javadoc for mk
+	public Node getRoot() {
+		return root;
+	}
+
+	public Hashtable<Triple<Integer, Node, Node>, Node> getLookupTable() {
+		return lookupTable;
+	}
+
+	public static void main(String[] args) {
+		/*
+		 * BDD a = new BDD(5); BDD b = new BDD(5); BDD res = new BDD(5); BDD
+		 * comparison = new BDD(5);
+		 * 
+		 * Expression<String> parsA =
+		 * RuleSet.simplify(ExprParser.parse("(x1)")); Expression<String> parsB
+		 * = RuleSet.simplify(ExprParser.parse("(x2)")); a.build(parsA);
+		 * b.build(parsB); res.apply("&", b, a);
+		 * 
+		 * Expression<String> parsComp = RuleSet.simplify(ExprParser.parse(
+		 * "(x1) & (x2)")); comparison.build(parsComp); res.draw();
+		 */
+
+		BDD a = new BDD(5);
+		Expression<String> parsA = RuleSet.simplify(ExprParser.parse("(x1 & !x2 & !x4 & !x5) | x3"));
+		a.build(parsA);
+		a.restrict(3, true);
+		a.draw();
+	}
+
+	/**
+	 * Builds a node, using the values from the triple.
+	 * 
+	 * @param variables
+	 *            The variable number of the node, it's low successor, and then
+	 *            it's high successor
+	 * @return A new node u, if the triple was not yet in the lookup table, or
+	 *         the existing node which the triple is mapped to in the table.
+	 */
 	public Node mk(Triple<Integer, Node, Node> variables) {
 
 		int var = variables.getFirst();
 		Node low = variables.getSecond();
 		Node high = variables.getThird();
 
-		if (low == high) {
+		if (low.equals(high)) {
 			return low;
 		}
-
-		Node exist = H.get(variables);
+		Node exist = lookupTable.get(variables);
 
 		if (exist == null) {
 			Node u = new NonTerminalNode(var, low, high);
-			H.put(variables, u);
+			lookupTable.put(variables, u);
 			return u;
 		}
+
 		return exist;
+
 	}
 
-	// TODO Javadoc
-	public void build(String t) {
-		root = buildH(t, 0);
+	/**
+	 * Builds a ROBDD, which can then be accessed via the getRoot() command.
+	 * 
+	 * @param t
+	 *            The string representation of the boolean expression the ROBDD
+	 */
+
+	public void build(Expression<String> t) {
+		root = buildH(t, 1);
 	}
 
-	// TODO Javadoc, find method of substituting boolean expressions
-	private Node buildH(String t, int i) {
+	private Node buildH(Expression<String> t, int i) {
 		if (i > n) {
-			// TODO: Replace dummySimplify
-			if (dummySimplify(t) == "0") {
+			if (RuleSet.simplify(t).equals(Literal.getFalse())) {
 				return terminalFalse;
 			}
 			return terminalTrue;
 		}
 
-		// TODO: Find replace dummySub
-		return mk(new Triple<Integer, Node, Node>(i, buildH(dummySub(t, i, false), i + 1),
-				buildH(dummySub(t, i, true), i + 1)));
-	}
-
-	private String dummySub(String t, int var, boolean value) {
-
-		int v = value ? 1 : 0;
-		return t.replace("x" + var, "" + v);
-
-	}
-
-	private String dummySimplify(String t) {
-
-		return t;
-
+		Node l = buildH(RuleSet.assign(t, Collections.singletonMap("x" + i, false)), i + 1);
+		Node h = buildH(RuleSet.assign(t, Collections.singletonMap("x" + i, true)), i + 1);
+		return mk(new Triple<Integer, Node, Node>(i, l, h));
 	}
 
 	/**
-	 * Apply a binary operator to two trees.
-	 * @param op A string representation of the operation to perform. Supports &, |, ->, xor, <->.
-	 * @param u1 One of the trees the operation will be applied to.
-	 * @param u2 One of the trees the operation will be applied to.
-	 * @return The tree that results from applying op to the two trees u1, u2.
+	 * Apply a binary operator to two ROBDDs of the same variables. This method
+	 * has to be invoked on a fresh BDD instance, which will store the result.
+	 * Warning: Both ROBDDs need to have the same variable count, otherwise this
+	 * method may exhibit unspecified behavior.
+	 * 
+	 * @param op
+	 *            A string representation of the operation to perform. Supports
+	 *            &, |, ->, xor, <->.
+	 * @param u1
+	 *            One of the ROBDDs the operation will be applied to.
+	 * @param u2
+	 *            One of the ROBDDs the operation will be applied to.
 	 */
-	public Node apply(String op, Node u1, Node u2) {
+	public void apply(String op, BDD u1, BDD u2) {
 
 		// Stores previously computed values of applying op on the two nodes.
 		// Might save computing time.
 		Hashtable<Triple<String, Node, Node>, Node> computed = new Hashtable<Triple<String, Node, Node>, Node>();
-		
-		return applyH(op, u1, u2, computed);
+
+		root = applyH(op, u1.getRoot(), u2.getRoot(), computed);
 
 	}
 
-	/**
-	 * @param op The operation to perform.
-	 * @param u1 One of the trees over which the action should be performed.
-	 * @param u2 One of the trees over which the action should be performed.
-	 * @param computed A table of previously computed results.
-	 * @return The tree that results from applying op to the two trees u1, u2.
-	 */
-	public Node applyH(String op, Node u1, Node u2, Hashtable<Triple<String, Node, Node>, Node> computed) {
+	private Node applyH(String op, Node u1, Node u2, Hashtable<Triple<String, Node, Node>, Node> computed) {
 
-		//Define the shortcut input to avoid more huge if conditions
+		// Define the shortcut input
 		Triple<String, Node, Node> input = new Triple<String, Node, Node>(op, u1, u2);
 		Node u;
 
 		if (computed.containsKey(input)) {
 			return computed.get(input);
 		}
-		// -1 denotes the terminal node 0
+
 		if (u1 instanceof TerminalNode && u2 instanceof TerminalNode) {
 			u = app(op, (TerminalNode) u1, (TerminalNode) u2);
 		} else {
-			if (((NonTerminalNode) u1).getVar() == ((NonTerminalNode) u2).getVar()) {
-				u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(),
-						applyH(op, ((NonTerminalNode) u1).getLow(), ((NonTerminalNode) u2).getLow(), computed),
-						applyH(op, ((NonTerminalNode) u1).getHigh(), ((NonTerminalNode) u2).getHigh(), computed)));
+			if (u1.getVar() == u2.getVar()) {
+				Node low = applyH(op, ((NonTerminalNode) u1).getLow(), ((NonTerminalNode) u2).getLow(), computed);
+				Node high = applyH(op, ((NonTerminalNode) u1).getHigh(), ((NonTerminalNode) u2).getHigh(), computed);
+				u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(), low, high));
 			} else {
-				if (((NonTerminalNode) u1).getVar() < ((NonTerminalNode) u2).getVar()) {
+				if (u1.getVar() < u2.getVar()) {
 					u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(),
 							applyH(op, ((NonTerminalNode) u1).getLow(), u2, computed),
 							applyH(op, ((NonTerminalNode) u1).getHigh(), u2, computed)));
-				} else{
-					u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(),
+				} else {
+					u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u2).getVar(),
 							applyH(op, u1, ((NonTerminalNode) u2).getLow(), computed),
 							applyH(op, u1, ((NonTerminalNode) u2).getHigh(), computed)));
 				}
 			}
 		}
+
 		computed.put(input, u);
 		return u;
 	}
-	
+
 	/**
-	 * assigns a variable a value in a given tree
-	 * @param u The tree over which to replace the variable
-	 * @param var The variable to replace
-	 * @param value The boolean value true or false with which to replace it
+	 * assigns a variable a value in a given ROBDD
+	 * 
+	 * @param u
+	 *            The ROBDD over which to replace the variable
+	 * @param var
+	 *            The variable to replace
+	 * @param value
+	 *            The boolean value true or false with which to replace it
 	 * @return
 	 */
-	public Node restrict(Node u, int var, boolean value){
-		
+	public void restrict(int var, boolean value) {
+
+		// reinitialize lookupTable because we are rebuilding the
+		// tree, and former references are not valid anymore
+		lookupTable = new Hashtable<Triple<Integer, Node, Node>, Node>(n * n);
+		root = restrictH(root, var, value);
+	}
+
+	private Node restrictH(Node u, int var, boolean value) {
+		if (u.getVar() > var) {
+			return u;
+		} else if (u.getVar() < var) {
+			return mk(new Triple<Integer, Node, Node>(u.getVar(), restrictH(((NonTerminalNode) u).getLow(), var, value),
+					restrictH(((NonTerminalNode) u).getHigh(), var, value)));
+		} else { // u.getVar() = j, u is the variable that we want to replace
+			if (!value) {
+				return restrictH(((NonTerminalNode) u).getLow(), var, value);
+			} else {
+				return restrictH(((NonTerminalNode) u).getLow(), var, value);
+			}
+		}
 	}
 
 	/**
-	 * applies an operator to two terminal nodes, so the result is also a terminal node.
-	 * @param op string representation of the operator. supports &, |, ->, xor, <->.
-	 * @param u1 Terminal node over which to compute the operator.
-	 * @param u2 Terminal node over which to compute the operator.
+	 * Counts the number of satisfying truth assignments of a ROBDD
+	 * 
+	 * @param u
+	 *            The root of the ROBDD.
+	 * @return The number of satisfying truth assignments.
+	 */
+	public double satCount() {
+		return Math.pow(2, root.getVar() - 1) * satCountH(root);
+	}
+
+	private double satCountH(Node u) {
+		if (u instanceof TrueTerminalNode) {
+			return 1;
+		} else if (u instanceof FalseTerminalNode) {
+			return 0;
+		} else { // u isn't terminal
+			return Math.pow(2, ((NonTerminalNode) u).getLow().getVar() - u.getVar() - 1)
+					* satCountH(((NonTerminalNode) u).getLow())
+					+ Math.pow(2, ((NonTerminalNode) u).getHigh().getVar() - u.getVar() - 1)
+							* satCountH(((NonTerminalNode) u).getHigh());
+		}
+	}
+
+	/**
+	 * Finds a satisfying truth assignment of a ROBDD.
+	 * 
+	 * @param u
+	 *            The root of the ROBDD.
+	 * @return A satisfying truth assignment, given as a string of "xi -> 0|1"
+	 * @throws NotSatisfiableException
+	 */
+	public String anySat(Node u) throws NotSatisfiableException {
+		if (u instanceof FalseTerminalNode) {
+			throw new NotSatisfiableException();
+		}
+		if (u instanceof TrueTerminalNode) {
+			return "";
+		}
+		if (((NonTerminalNode) u).getLow() instanceof FalseTerminalNode) {
+			return anySat(((NonTerminalNode) u).getHigh());
+		}
+		return anySat(((NonTerminalNode) u).getHigh());
+	}
+
+	public void draw() {
+		GraphPainter.draw(this);
+	}
+
+	/**
+	 * applies an operator to two terminal nodes, so the result is also a
+	 * terminal node.
+	 * 
+	 * @param op
+	 *            string representation of the operator. supports &, |, ->, xor,
+	 *            <->.
+	 * @param u1
+	 *            Terminal node over which to compute the operator.
+	 * @param u2
+	 *            Terminal node over which to compute the operator.
 	 * @return A terminal node of the result of the operation.
 	 */
-	public TerminalNode app(String op, TerminalNode u1, TerminalNode u2) {
+	private TerminalNode app(String op, TerminalNode u1, TerminalNode u2) {
 		switch (op) {
 		case "&":
 			if (u1 instanceof TrueTerminalNode && u2 instanceof TrueTerminalNode) {
-				return new TrueTerminalNode(n);
+				return terminalTrue;
 			} else {
-				return new FalseTerminalNode(n);
+				return terminalFalse;
 			}
 		case "|":
 			if (u1 instanceof TrueTerminalNode || u2 instanceof TrueTerminalNode) {
-				return new TrueTerminalNode(n);
+				return terminalTrue;
 			} else {
-				return new FalseTerminalNode(n);
+				return terminalFalse;
 			}
 		case "->":
 			if (!(u1 instanceof TrueTerminalNode && !(u2 instanceof TrueTerminalNode))) {
-				return new TrueTerminalNode(n);
+				return terminalTrue;
 			} else {
-				return new FalseTerminalNode(n);
+				return terminalFalse;
 			}
 		case "<->":
 			if ((u1 instanceof TrueTerminalNode && u2 instanceof TrueTerminalNode)
 					|| (u1 instanceof FalseTerminalNode && u2 instanceof FalseTerminalNode)) {
-				return new TrueTerminalNode(n);
+				return terminalTrue;
 			} else {
-				return new FalseTerminalNode(n);
+				return terminalFalse;
 			}
 		case "xor":
 			if ((u1 instanceof TrueTerminalNode && u2 instanceof FalseTerminalNode)
 					|| (u1 instanceof FalseTerminalNode && u2 instanceof TrueTerminalNode)) {
-				return new TrueTerminalNode(n);
+				return terminalTrue;
 			} else {
-				return new FalseTerminalNode(n);
+				return terminalFalse;
 			}
 		default:
-			return new FalseTerminalNode(n);
+			return terminalFalse;
 		}
 	}
 
+	public boolean equals(Object o) {
+		if (!(o instanceof BDD)) {
+			return false;
+		}
+		return root.equals(((BDD) o).getRoot());
+	}
+
+	public int hashCode() {
+		return 37 * root.hashCode() + 49 * n;
+	}
 }

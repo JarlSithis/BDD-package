@@ -1,8 +1,8 @@
 package utils;
 
 /**
- * Implementation of a simple class to represent a triple, used in the BDD //
- * for the triples that denotes (var, low, high) of a {@Link Node} n
+ * Implementation of a simple class to represent a triple, used in the BDD
+ * for the triple that denotes (var, low, high) of a {@Link Node} n
  * 
  * @author Offtermatt
  *
@@ -44,5 +44,16 @@ public class Triple<A, B, C> {
 
 	public void setThird(C third) {
 		this.third = third;
+	}
+	
+	public boolean equals(Object o){
+		if(!(o instanceof Triple)){
+			return false;
+		}
+		return first.equals(((Triple) o).getFirst()) && second.equals(((Triple) o).getSecond()) && third.equals(((Triple) o).getThird());
+	}
+	
+	public int hashCode(){
+		return 739 * first.hashCode() + 863 * second.hashCode() + 101 * third.hashCode();
 	}
 }

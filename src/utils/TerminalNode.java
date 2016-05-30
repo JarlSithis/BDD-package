@@ -1,14 +1,23 @@
 package utils;
 
+/**
+ * A node with no successors. var is n+1, where n is the number of variables in the tree.
+ * @author philip
+ *
+ */
 public abstract class TerminalNode implements Node{
 
-	public int n;
+	public int var;
 	
 	public int getVar(){
-		return n+1;
+		return var;
 	}
 	
 	public TerminalNode(int varcount){
-		n = varcount;
+		var = varcount+1;
+	}
+	
+	public String draw(){
+		return this.getClass().getSimpleName();
 	}
 }
