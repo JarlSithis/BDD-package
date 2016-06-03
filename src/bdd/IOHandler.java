@@ -22,13 +22,14 @@ public class IOHandler {
 					+ "\n Example for correct command: ./bdd-package.jar \"(x1 & !x3 & x2) | (!x1 & x2)\" 3" + "\n"
 					+ "\n" + "\n Run the predefined test by writing \"Test\" as the only parameter."
 					+ "\n Example: ./bdd-package.jar \"Test\""
-					+ "\n To see the example for a BDD for the 4-queens problem, use \"Test_4queens\" as the only parameter.");
+					+ "\n To see the example for a BDD for the 4-queens problem, use \"Test_4queens\" as the only parameter.\n Enter any test to continue.");
+			
 		}
 		if (args.length == 1 && args[0].equalsIgnoreCase("Test")) {
 			System.out.println("In this test, we will look at two BDDs"
 					+ "\n The first will be built from the expression ((x1 & x2 & !x3 & x4) | (!x1 & x3 & !x5) | (!x2 & x3))"
 					+ "\n The second will be built from the expression ((x5 & x2 & x3) | (!x1 & !x2) | (!x3 & x4))"
-					+ "\n To continue, press enter.");
+					+ "\n To continue, enter any text.");
 			sc.next();
 			BDD a = new BDD(5);
 			BDD b = new BDD(5);
@@ -39,7 +40,7 @@ public class IOHandler {
 			b.build(bex);
 			a.draw();
 			b.draw();
-			System.out.println("Press enter to continue.");
+			System.out.println("To continue, enter any text.");
 			sc.next();
 			System.out.println("Now, we will apply the and operator to the two expressions. "
 					+ "We expect that the resulting tree looks like the one built "
@@ -55,6 +56,8 @@ public class IOHandler {
 							+ "x2 & x3) | (!x1 & !x2) | (!x3 & x4))"));
 			comp.build(compex);
 			comp.draw();
+			System.out.println("To end the test, enter any text.");
+			sc.next();
 		}
 		if(args.length == 1 && args[0].equalsIgnoreCase("Test_4queens")){
 			BDDTests.build4Queens();
@@ -70,6 +73,8 @@ public class IOHandler {
 			} catch (NotSatisfiableException e) {
 				System.out.println("There is no satisfying truth assignment for the expression.");
 			}
+			System.out.println("To end the test, enter any text.");
+			sc.close();
 		}
 		sc.close();
 	}
