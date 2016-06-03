@@ -21,10 +21,10 @@ public class IOHandler {
 					+ "\n For example, \"x1 & x2 | x3\"needs to be written as \"(x1 & x2) | x3\"."
 					+ "\n Example for correct command: ./bdd-package.jar \"(x1 & !x3 & x2) | (!x1 & x2)\" 3" + "\n"
 					+ "\n" + "\n Run the predefined test by writing \"Test\" as the only parameter."
-					+ "\n Example: ./bdd-package.jar \"Test\"" + "\n Type enter to resume.");
-			sc.next();
+					+ "\n Example: ./bdd-package.jar \"Test\""
+					+ "\n To see the example for a BDD for the 4-queens problem, use \"Test_4queens\" as the only parameter.");
 		}
-		if (args.length == 1) {
+		if (args.length == 1 && args[0].equalsIgnoreCase("Test")) {
 			System.out.println("In this test, we will look at two BDDs"
 					+ "\n The first will be built from the expression ((x1 & x2 & !x3 & x4) | (!x1 & x3 & !x5) | (!x2 & x3))"
 					+ "\n The second will be built from the expression ((x5 & x2 & x3) | (!x1 & !x2) | (!x3 & x4))"
@@ -44,8 +44,7 @@ public class IOHandler {
 			System.out.println("Now, we will apply the and operator to the two expressions. "
 					+ "We expect that the resulting tree looks like the one built "
 					+ "from the expression \n((x1 & x2 & !x3 & x4) | (!x1 & x3 & !x5)"
-					+ "| (!x2 & x3)) & ((x5 & x2 & x3) | (!x1 & !x2) | (!x3 & x4))"
-					+ "\n Press enter to continue.");
+					+ "| (!x2 & x3)) & ((x5 & x2 & x3) | (!x1 & !x2) | (!x3 & x4))" + "\n Press enter to continue.");
 			sc.next();
 			BDD res = new BDD(5);
 			res.apply("&", a, b);
@@ -56,6 +55,9 @@ public class IOHandler {
 							+ "x2 & x3) | (!x1 & !x2) | (!x3 & x4))"));
 			comp.build(compex);
 			comp.draw();
+		}
+		if(args.length == 1 && args[0].equalsIgnoreCase("Test_4queens")){
+			BDDTests.build4Queens();
 		}
 		if (args.length == 2) {
 			Expression<String> ex = RuleSet.simplify(ExprParser.parse(args[0]));
