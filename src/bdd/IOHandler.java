@@ -22,7 +22,7 @@ public class IOHandler {
 					+ "\n Example for correct command: ./bdd-package.jar \"(x1 & !x3 & x2) | (!x1 & x2)\" 3" + "\n"
 					+ "\n" + "\n Run the predefined test by writing \"Test\" as the only parameter."
 					+ "\n Example: ./bdd-package.jar \"Test\""
-					+ "\n To see the example for a BDD for the 4-queens problem, use \"Test_4queens\" as the only parameter.\n Enter any test to continue.");
+					+ "\n To see the example for a BDD for the 4-queens problem, use \"Test_4queens\" as the only parameter.\n Enter any text to continue.");
 			
 		}
 		if (args.length == 1 && args[0].equalsIgnoreCase("Test")) {
