@@ -1,5 +1,7 @@
 package utils;
 
+import java.util.Hashtable;
+
 /**
  * A node that represents the constant FALSE.
  * 
@@ -20,5 +22,10 @@ public class FalseTerminalNode extends TerminalNode {
 	@Override
 	public int hashCode(){
 		return 719;
+	}
+
+	@Override
+	public void cleanUp(Hashtable<Triple<Integer, Node, Node>, Node> lookupTable) {
+		return;
 	}
 }

@@ -2,12 +2,9 @@ package bdd;
 
 import java.util.Collections;
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
-import com.bpodgursky.jbool_expressions.parsers.ExprParser;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 
 import utils.FalseTerminalNode;
@@ -76,27 +73,6 @@ public class BDD {
 
 	public Hashtable<Triple<Integer, Node, Node>, Node> getLookupTable() {
 		return lookupTable;
-	}
-
-	public static void main(String[] args) {
-		/*
-		 * BDD a = new BDD(5); BDD b = new BDD(5); BDD res = new BDD(5); BDD
-		 * comparison = new BDD(5);
-		 * 
-		 * Expression<String> parsA =
-		 * RuleSet.simplify(ExprParser.parse("(x1)")); Expression<String> parsB
-		 * = RuleSet.simplify(ExprParser.parse("(x2)")); a.build(parsA);
-		 * b.build(parsB); res.apply("&", b, a);
-		 * 
-		 * Expression<String> parsComp = RuleSet.simplify(ExprParser.parse(
-		 * "(x1) & (x2)")); comparison.build(parsComp); res.draw();
-		 */
-
-		BDD a = new BDD(5);
-		Expression<String> parsA = RuleSet.simplify(ExprParser.parse("(x1 & !x2 & !x4 & !x5) | x3"));
-		a.build(parsA);
-		a.restrict(3, true);
-		a.draw();
 	}
 
 	/**
@@ -189,26 +165,36 @@ public class BDD {
 
 		if (u1 instanceof TerminalNode && u2 instanceof TerminalNode) {
 			u = app(op, (TerminalNode) u1, (TerminalNode) u2);
-		} else {
-			if (u1.getVar() == u2.getVar()) {
-				Node low = applyH(op, ((NonTerminalNode) u1).getLow(), ((NonTerminalNode) u2).getLow(), computed);
-				Node high = applyH(op, ((NonTerminalNode) u1).getHigh(), ((NonTerminalNode) u2).getHigh(), computed);
-				u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(), low, high));
-			} else {
-				if (u1.getVar() < u2.getVar()) {
-					u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(),
-							applyH(op, ((NonTerminalNode) u1).getLow(), u2, computed),
-							applyH(op, ((NonTerminalNode) u1).getHigh(), u2, computed)));
-				} else {
-					u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u2).getVar(),
-							applyH(op, u1, ((NonTerminalNode) u2).getLow(), computed),
-							applyH(op, u1, ((NonTerminalNode) u2).getHigh(), computed)));
-				}
-			}
+
+			computed.put(input, u);
+			return u;
+		}
+		if (u1.getVar() == u2.getVar()) {
+			Node low = applyH(op, ((NonTerminalNode) u1).getLow(), ((NonTerminalNode) u2).getLow(), computed);
+			Node high = applyH(op, ((NonTerminalNode) u1).getHigh(), ((NonTerminalNode) u2).getHigh(), computed);
+			u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(), low, high));
+
+			computed.put(input, u);
+			return u;
+		}
+		if (u1.getVar() < u2.getVar()) {
+			u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u1).getVar(),
+					applyH(op, ((NonTerminalNode) u1).getLow(), u2, computed),
+					applyH(op, ((NonTerminalNode) u1).getHigh(), u2, computed)));
+
+			computed.put(input, u);
+			return u;
+		}
+		if (u1.getVar() > u2.getVar()) {
+			u = mk(new Triple<Integer, Node, Node>(((NonTerminalNode) u2).getVar(),
+					applyH(op, u1, ((NonTerminalNode) u2).getLow(), computed),
+					applyH(op, u1, ((NonTerminalNode) u2).getHigh(), computed)));
+
+			computed.put(input, u);
+			return u;
 		}
 
-		computed.put(input, u);
-		return u;
+		return null;
 	}
 
 	/**
@@ -224,29 +210,34 @@ public class BDD {
 	 */
 	public void restrict(int var, boolean value) {
 
-		// reinitialize lookupTable because we are rebuilding the
-		// tree, and former references are not valid anymore
-		lookupTable = new Hashtable<Triple<Integer, Node, Node>, Node>(n * n);
 		root = restrictH(root, var, value);
+
+		// clean the lookup-table from references to nodes no longer in the tree
+		// and rebuild it
+		lookupTable.clear();
+		root.cleanUp(lookupTable);
 	}
 
 	private Node restrictH(Node u, int var, boolean value) {
 		if (u.getVar() > var) {
 			return u;
-		} else if (u.getVar() < var) {
-			return mk(new Triple<Integer, Node, Node>(u.getVar(), restrictH(((NonTerminalNode) u).getLow(), var, value),
-					restrictH(((NonTerminalNode) u).getHigh(), var, value)));
-		} else { // u.getVar() = j, u is the variable that we want to replace
-			if (!value) {
-				return restrictH(((NonTerminalNode) u).getLow(), var, value);
-			} else {
-				return restrictH(((NonTerminalNode) u).getLow(), var, value);
-			}
 		}
+		if (u.getVar() < var) {
+			Node low = restrictH(((NonTerminalNode) u).getLow(), var, value);
+			Node high = restrictH(((NonTerminalNode) u).getHigh(), var, value);
+			return mk(new Triple<Integer, Node, Node>(u.getVar(), low, high));
+		}
+		// u.getVar() = j, u is the variable that we want to replace
+		if (value) {
+			return restrictH(((NonTerminalNode) u).getHigh(), var, value);
+		} else {
+			return restrictH(((NonTerminalNode) u).getLow(), var, value);
+		}
+
 	}
 
 	/**
-	 * Counts the number of satisfying truth assignments of a ROBDD
+	 * Counts the number of satisfying truth assignments of the ROBDD this is called on.
 	 * 
 	 * @param u
 	 *            The root of the ROBDD.
@@ -270,14 +261,15 @@ public class BDD {
 	}
 
 	/**
-	 * Finds a satisfying truth assignment of a ROBDD.
-	 * 
-	 * @param u
-	 *            The root of the ROBDD.
+	 * Finds a satisfying truth assignment of the ROBDD it is called on.
 	 * @return A satisfying truth assignment, given as a string of "xi -> 0|1"
 	 * @throws NotSatisfiableException
 	 */
-	public String anySat(Node u) throws NotSatisfiableException {
+	public String anySat() throws NotSatisfiableException{
+		return anySatH(root);
+	}
+	
+	private String anySatH(Node u) throws NotSatisfiableException {
 		if (u instanceof FalseTerminalNode) {
 			throw new NotSatisfiableException();
 		}
@@ -285,9 +277,9 @@ public class BDD {
 			return "";
 		}
 		if (((NonTerminalNode) u).getLow() instanceof FalseTerminalNode) {
-			return anySat(((NonTerminalNode) u).getHigh());
+			return "x" + u.getVar() + " -> 1, " + anySatH(((NonTerminalNode) u).getHigh());
 		}
-		return anySat(((NonTerminalNode) u).getHigh());
+		return "x" + u.getVar() + " -> 0, " + anySatH(((NonTerminalNode) u).getLow());
 	}
 
 	public void draw() {

@@ -1,5 +1,7 @@
 package utils;
 
+import java.util.Hashtable;
+
 /**
  * A node that represents the constant TRUE.
  * @author philip
@@ -19,6 +21,11 @@ public class TrueTerminalNode extends TerminalNode{
 	@Override
 	public int hashCode(){
 		return 43;
+	}
+
+	@Override
+	public void cleanUp(Hashtable<Triple<Integer, Node, Node>, Node> lookupTable) {
+		return;		
 	}
 
 }

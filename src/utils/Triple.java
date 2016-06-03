@@ -50,7 +50,7 @@ public class Triple<A, B, C> {
 		if(!(o instanceof Triple)){
 			return false;
 		}
-		return first.equals(((Triple) o).getFirst()) && second.equals(((Triple) o).getSecond()) && third.equals(((Triple) o).getThird());
+		return first.equals(((Triple<?, ?, ?>) o).getFirst()) && second.equals(((Triple<?, ?, ?>) o).getSecond()) && third.equals(((Triple<?, ?, ?>) o).getThird());
 	}
 	
 	public int hashCode(){

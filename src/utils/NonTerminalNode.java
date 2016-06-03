@@ -1,5 +1,7 @@
 package utils;
 
+import java.util.Hashtable;
+
 public class NonTerminalNode implements Node {
 
 	/**
@@ -34,7 +36,7 @@ public class NonTerminalNode implements Node {
 		this.low = low;
 	}
 
-	public NonTerminalNode(int var, Node high, Node low) {
+	public NonTerminalNode(int var, Node low, Node high) {
 		super();
 		this.var = var;
 		this.high = high;
@@ -59,5 +61,13 @@ public class NonTerminalNode implements Node {
 	@Override
 	public int hashCode(){
 		return 11 * var + 13 * low.hashCode() + 17 * high.hashCode();
+	}
+
+	@Override
+	public void cleanUp(Hashtable<Triple<Integer, Node, Node>, Node> lookupTable) {
+		Triple<Integer, Node, Node> vals = new Triple<Integer, Node, Node>(var, low, high);
+		lookupTable.put(vals, this);
+		low.cleanUp(lookupTable);
+		high.cleanUp(lookupTable);
 	}
 }

@@ -1,5 +1,7 @@
 package utils;
 
+import java.util.Hashtable;
+
 /**
  * A simple implementation of a node, used in the representation of ROBDDs as graphs.
  * 
@@ -20,5 +22,7 @@ public interface Node {
 	
 	@Override
 	public int hashCode();
+
+	public void cleanUp(Hashtable<Triple<Integer, Node, Node>, Node> lookupTable);
 
 }
