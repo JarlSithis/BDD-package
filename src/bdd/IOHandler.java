@@ -13,16 +13,17 @@ public class IOHandler {
 	public static void main(String[] args) {
 		Scanner sc = new Scanner(System.in);
 		if (args.length == 0) {
-			System.out.println("Usage: Options:"
-					+ "\n - Input a boolean expression in string form, followed by the number of variables as integer."
-					+ "\n Only & and | are supported."
+			System.out.println("Usage: Parameters: Expression N | Test | Test_4queens \n \n "
+					+ "\n Expression N - Input a boolean Expression in string form, followed by the number of variables as integer N."
+					+ "\n Only & and | as operators are supported."
+					+ "\n The expression might need to be escaped by putting it into quotes."
 					+ "\n Variables have to be written as xi, with i being a number. Keep in mind that parentheses need to match, "
 					+ "\n and every sub-part of the expression needs to be in parentheses."
 					+ "\n For example, \"x1 & x2 | x3\"needs to be written as \"(x1 & x2) | x3\"."
 					+ "\n Example for correct command: ./bdd-package.jar \"(x1 & !x3 & x2) | (!x1 & x2)\" 3" + "\n"
-					+ "\n" + "\n Run the predefined test by writing \"Test\" as the only parameter."
+					+ "\n" + "\n Test - Run the predefined test by writing \"Test\" as the only parameter."
 					+ "\n Example: ./bdd-package.jar \"Test\""
-					+ "\n To see the example for a BDD for the 4-queens problem, use \"Test_4queens\" as the only parameter.\n Enter any text to continue.");
+					+ "\n Test_4queens - To see the example for a BDD for the 4-queens problem, use \"Test_4queens\" as the only parameter.\n Enter any text to continue.");
 			
 		}
 		if (args.length == 1 && args[0].equalsIgnoreCase("Test")) {
